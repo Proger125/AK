@@ -7,7 +7,7 @@
 
 using namespace std;
 
-const int N = 10;
+const int N = 100;
 
 const double A = 1;
 const double B = 1;
@@ -19,7 +19,7 @@ const double EPS = 0.00001;
 
 double U[N][N];
 
-double map[N];
+int map[N];
 
 double f(double x, double y) { return y * x; }
 
@@ -64,19 +64,18 @@ int main(int argc, char** argv) {
 	int start = 1 + rank * dimension;
 	int end = 1 + (rank + 1) * dimension;
 
-	int* map = new int[N - 1];
 	map[0] = 0;
 	if (rank == 0) {
 		int currentRank = 0;
 		for (int i = 1; i < N - 1; i++) {
 			map[i] = currentRank;
-			if (i % dimension == 0) {
+			if (i % dimension == 0 && currentRank != size - 1) {
 				currentRank++;
 			}
 		}
 	}
 
-	MPI_Bcast(&map[0], N - 2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&map[0], N - 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 
 	if (rank == size - 1) {
@@ -125,14 +124,8 @@ int main(int argc, char** argv) {
 
 		MPI_Reduce(&delta, &maxDelta, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 		MPI_Bcast(&maxDelta, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-		if (rank == 0) {
-			cout << "Current delta = " << maxDelta << endl;
-		}
-
 	} while (maxDelta > EPS);
 
-	MPI_Barrier(MPI_COMM_WORLD);
 
 	clock_t finish = clock();
 
@@ -141,7 +134,7 @@ int main(int argc, char** argv) {
 	if (rank == 0) {
 		cout << "Time: " << finish - begin << endl;
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
+
 
 	for (int i = 1; i < N - 1; i++) {
 		MPI_Bcast(&U[i][0], N, MPI_DOUBLE, map[i], MPI_COMM_WORLD);
@@ -159,5 +152,6 @@ int main(int argc, char** argv) {
 
 		fout.close();
 	}
+
 	MPI_Finalize();
 }
